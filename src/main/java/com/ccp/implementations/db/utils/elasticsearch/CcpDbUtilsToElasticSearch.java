@@ -6,14 +6,14 @@ import com.ccp.decorators.CcpMapDecorator;
 import com.ccp.dependency.injection.CcpEspecification;
 import com.ccp.dependency.injection.CcpImplementation;
 import com.ccp.especifications.db.utils.CcpDbUtils;
-import com.ccp.especifications.http.CcpHttp;
+import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpHandler;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
 
 @CcpImplementation
 public class CcpDbUtilsToElasticSearch implements CcpDbUtils {
 	@CcpEspecification
-	private CcpHttp ccpHttp;
+	private CcpHttpRequester ccpHttp;
 
 	private CcpMapDecorator getHeaders() {
 		return new CcpMapDecorator()
