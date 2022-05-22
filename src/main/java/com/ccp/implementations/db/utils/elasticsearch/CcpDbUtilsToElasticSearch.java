@@ -24,54 +24,42 @@ public class CcpDbUtilsToElasticSearch implements CcpDbUtils {
 	}
 
 	@Override
-	public CcpMapDecorator executeHttpRequest(int expectedStatus, String url, String method, CcpMapDecorator headers, String body) {
+	public CcpMapDecorator executeHttpRequest(String url, String method,  int expectedStatus, String body, CcpMapDecorator headers) {
 		headers = this.getHeaders().putAll(headers);
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
-		CcpMapDecorator executeHttpRequest = http.executeHttpRequest(url, "POST", headers, body);
+		CcpMapDecorator executeHttpRequest = http.executeHttpRequest(url, method, headers, body);
 
 		return executeHttpRequest;
 	}
 
 	@Override
-	public CcpMapDecorator executeHttpRequest(int expectedStatus, String[] resourcesNames, String complemento, String method, CcpMapDecorator body) {
-		String url = this.getUrl(resourcesNames, complemento);
+	public CcpMapDecorator executeHttpRequest(String complemento, String method, int expectedStatus, CcpMapDecorator body,  String[] resources) {
+		String path = this.getHeaders().getAsString("DB_URL") +  Arrays.asList(resources).stream().toString()
+				.replace("[", "").replace("]", "").replace(" ", "") + complemento;
 		CcpMapDecorator headers = this.getHeaders();
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
-		CcpMapDecorator executeHttpRequest = http.executeHttpRequest(url, "POST", headers, body);
-		return executeHttpRequest;
-	}
-
-	private String getUrl(String[] resourcesNames, String complemento) {
-		return this.getHeaders().getAsString("DB_URL") +  Arrays.asList(resourcesNames).stream().toString()
-				.replace("[", "").replace("]", "").replace(" ", "") + complemento;
-	}
-
-	@Override
-	public CcpMapDecorator executeHttpRequest(CcpMapDecorator flows, String complemento, String method, CcpMapDecorator body) {
-		CcpHttpHandler http = new CcpHttpHandler(flows, this.ccpHttp);
-		CcpMapDecorator headers = this.getHeaders();
-		String url = headers.getAsString("DB_URL") + complemento;
-		CcpMapDecorator executeHttpRequest = http.executeHttpRequest(url, "POST", headers, body);
+		CcpMapDecorator executeHttpRequest = http.executeHttpRequest(path, method, headers, body);
 		return executeHttpRequest;
 	}
 
 	@Override
-	public CcpMapDecorator executeHttpRequest(String url, String method, CcpMapDecorator body, CcpMapDecorator flows) {
+	public CcpMapDecorator executeHttpRequest(String url, String method, CcpMapDecorator flows, CcpMapDecorator body) {
 		CcpMapDecorator headers = this.getHeaders();
 		CcpHttpHandler http = new CcpHttpHandler(flows, this.ccpHttp);
 		String path = headers.getAsString("DB_URL") + url;
-		CcpMapDecorator executeHttpRequest = http.executeHttpRequest(path, "POST", headers, body);
+		CcpMapDecorator executeHttpRequest = http.executeHttpRequest(path, method, headers, body);
 		
 		return executeHttpRequest;
 	}
 
 	@Override
-	public CcpMapDecorator executeHttpRequest(int expectedStatus, String url, String method) {
-		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
+	public CcpMapDecorator executeHttpRequest(String url, String method, int expectedStatus, CcpMapDecorator body) {
 		CcpMapDecorator headers = this.getHeaders();
+		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
 		String path = headers.getAsString("DB_URL") + url;
-		CcpMapDecorator response = http.executeHttpRequest(path, method, headers, new CcpMapDecorator());
-		return response;
+		CcpMapDecorator executeHttpRequest = http.executeHttpRequest(path, method, headers, body);
+		
+		return executeHttpRequest;
 	}
 
 	
