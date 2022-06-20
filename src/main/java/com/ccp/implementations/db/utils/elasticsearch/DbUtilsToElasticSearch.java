@@ -4,14 +4,12 @@ import java.util.Arrays;
 
 import com.ccp.decorators.CcpMapDecorator;
 import com.ccp.dependency.injection.CcpEspecification;
-import com.ccp.dependency.injection.CcpImplementation;
 import com.ccp.especifications.db.utils.CcpDbUtils;
-import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpHandler;
+import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
 
-@CcpImplementation
-public class CcpDbUtilsToElasticSearch implements CcpDbUtils {
+class DbUtilsToElasticSearch implements CcpDbUtils {
 	@CcpEspecification
 	private CcpHttpRequester ccpHttp;
 
