@@ -1,6 +1,7 @@
 package com.ccp.implementations.db.utils.elasticsearch;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import com.ccp.decorators.CcpMapDecorator;
 import com.ccp.decorators.CcpStringDecorator;
@@ -43,7 +44,9 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 
 	@Override
 	public <V> V executeHttpRequest(String complemento, String method, Integer expectedStatus, CcpMapDecorator body,  String[] resources, CcpHttpResponseTransform<V> transformer) {
-		String path = this.connectionDetails.getAsString("DB_URL") +  Arrays.asList(resources).stream().toString()
+		String path = this.connectionDetails.getAsString("DB_URL") + "/" +  Arrays.asList(resources).stream()
+				.collect(Collectors.toList())
+				.toString()
 				.replace("[", "").replace("]", "").replace(" ", "") + complemento;
 		CcpMapDecorator headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
