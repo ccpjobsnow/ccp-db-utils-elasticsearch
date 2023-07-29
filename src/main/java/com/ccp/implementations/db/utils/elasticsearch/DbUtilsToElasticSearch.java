@@ -39,7 +39,6 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
 		String path = this.connectionDetails.getAsString("DB_URL") + url;
 		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
-
 		return executeHttpRequest;
 	}
 
