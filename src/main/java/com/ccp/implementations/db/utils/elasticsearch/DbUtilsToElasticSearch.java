@@ -10,7 +10,9 @@ import com.ccp.especifications.db.utils.CcpDbUtils;
 import com.ccp.especifications.http.CcpHttpHandler;
 import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
-
+enum X{
+	database;
+}
 class DbUtilsToElasticSearch implements CcpDbUtils {
 	@CcpDependencyInject
 	private CcpHttpRequester ccpHttp;
@@ -38,7 +40,7 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 		headers = this.connectionDetails.putAll(headers);
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
 		String path = this.connectionDetails.getAsString("DB_URL") + url;
-		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
+		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer, X.database);
 		return executeHttpRequest;
 	}
 
@@ -50,7 +52,7 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 				.replace("[", "").replace("]", "").replace(" ", "") + complemento;
 		CcpMapDecorator headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
-		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
+		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer, X.database);
 		return executeHttpRequest;
 	}
 
@@ -59,7 +61,7 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 		CcpMapDecorator headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(flows, this.ccpHttp);
 		String path = headers.getAsString("DB_URL") + url;
-		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
+		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer, X.database);
 		
 		return executeHttpRequest;
 	}
@@ -69,7 +71,7 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 		CcpMapDecorator headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
 		String path = headers.getAsString("DB_URL") + url;
-		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
+		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer, X.database);
 		
 		return executeHttpRequest;
 	}
