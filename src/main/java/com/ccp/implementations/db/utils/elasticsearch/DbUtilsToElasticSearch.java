@@ -5,14 +5,10 @@ import java.util.stream.Collectors;
 
 import com.ccp.decorators.CcpMapDecorator;
 import com.ccp.decorators.CcpStringDecorator;
-import com.ccp.dependency.injection.CcpDependencyInject;
 import com.ccp.especifications.db.utils.CcpDbUtils;
 import com.ccp.especifications.http.CcpHttpHandler;
-import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
 class DbUtilsToElasticSearch implements CcpDbUtils {
-	@CcpDependencyInject
-	private CcpHttpRequester ccpHttp;
 
 	private CcpMapDecorator connectionDetails = new CcpMapDecorator();
 	
@@ -35,7 +31,7 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 	@Override
 	public <V> V executeHttpRequest(String url, String method,  Integer expectedStatus, String body, CcpMapDecorator headers, CcpHttpResponseTransform<V> transformer) {
 		headers = this.connectionDetails.putAll(headers);
-		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
+		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
 		String path = this.connectionDetails.getAsString("DB_URL") + url;
 		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
 		return executeHttpRequest;
@@ -48,7 +44,7 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 				.toString()
 				.replace("[", "").replace("]", "").replace(" ", "") + complemento;
 		CcpMapDecorator headers = this.connectionDetails;
-		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
+		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
 		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
 		return executeHttpRequest;
 	}
@@ -56,7 +52,7 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 	@Override
 	public <V> V executeHttpRequest(String url, String method, CcpMapDecorator flows, CcpMapDecorator body, CcpHttpResponseTransform<V> transformer) {
 		CcpMapDecorator headers = this.connectionDetails;
-		CcpHttpHandler http = new CcpHttpHandler(flows, this.ccpHttp);
+		CcpHttpHandler http = new CcpHttpHandler(flows);
 		String path = headers.getAsString("DB_URL") + url;
 		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
 		
@@ -66,7 +62,7 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 	@Override
 	public <V> V executeHttpRequest(String url, String method, Integer expectedStatus, CcpMapDecorator body, CcpHttpResponseTransform<V> transformer) {
 		CcpMapDecorator headers = this.connectionDetails;
-		CcpHttpHandler http = new CcpHttpHandler(expectedStatus, this.ccpHttp);
+		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
 		String path = headers.getAsString("DB_URL") + url;
 		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
 		
