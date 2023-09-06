@@ -15,7 +15,7 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 	public DbUtilsToElasticSearch() {
 		CcpMapDecorator systemProperties;
 		try {
-			systemProperties = new CcpStringDecorator("application1.properties").propertiesFileFromClassLoader();
+			systemProperties = new CcpStringDecorator("application.properties").propertiesFileFromClassLoader();
 		} catch (Exception e) {
 			systemProperties = new CcpMapDecorator();
 		}
@@ -67,6 +67,14 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
 		
 		return executeHttpRequest;
+	}
+
+
+
+
+	@Override
+	public CcpMapDecorator getConnectionDetails() {
+		return this.connectionDetails;
 	}
 
 	
