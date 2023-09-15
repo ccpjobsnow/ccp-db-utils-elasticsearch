@@ -15,11 +15,11 @@ class DbUtilsToElasticSearch implements CcpDbUtils {
 	public DbUtilsToElasticSearch() {
 		CcpMapDecorator systemProperties;
 		try {
-			systemProperties = new CcpStringDecorator("application.properties").propertiesFileFromClassLoader();
+			systemProperties = new CcpStringDecorator("application.properties").propertiesFileFromFile();
 		} catch (Exception e) {
 			systemProperties = new CcpMapDecorator();
 		}
-		Object url = systemProperties.getOrDefault("elasticsearch.address", "http://localhost:9200");
+		Object url = systemProperties.getOrDefault("elasticsearch.address", "https://localhost:9200");
 		Object secret = systemProperties.getOrDefault("elasticsearch.secret", "");
 		
 		this.connectionDetails = this.connectionDetails.put("Content-Type", "application/json")
