@@ -5,25 +5,31 @@ import java.util.stream.Collectors;
 
 import com.ccp.decorators.CcpMapDecorator;
 import com.ccp.decorators.CcpStringDecorator;
-import com.ccp.especifications.db.utils.CcpDbUtils;
+import com.ccp.especifications.db.utils.CcpDbRequester;
 import com.ccp.especifications.http.CcpHttpHandler;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
-class DbUtilsToElasticSearch implements CcpDbUtils {
+import com.ccp.exceptions.process.CcpMissingInputStream;
+class ElasticSearchDbRequester implements CcpDbRequester {
 
 	private CcpMapDecorator connectionDetails = new CcpMapDecorator();
 	
-	public DbUtilsToElasticSearch() {
+	public ElasticSearchDbRequester() {
 		CcpMapDecorator systemProperties;
 		try {
-			systemProperties = new CcpStringDecorator("application.properties").propertiesFileFromFile();
-		} catch (Exception e) {
-			systemProperties = new CcpMapDecorator();
+			systemProperties = new CcpStringDecorator("application.properties")
+					.propertiesFrom().environmentVariablesOrClassLoaderOrFile();
+		} catch (CcpMissingInputStream e) {
+			systemProperties = new CcpMapDecorator()
+					.put("elasticsearch.address", "https://localhost:9200")
+					.put("elasticsearch.secret", "")
+					;
 		}
-		Object url = systemProperties.getOrDefault("elasticsearch.address", "https://localhost:9200");
-		Object secret = systemProperties.getOrDefault("elasticsearch.secret", "");
+
+		CcpMapDecorator subMap = systemProperties.getSubMap("elasticsearch.address", "elasticsearch.secret");
 		
-		this.connectionDetails = this.connectionDetails.put("Content-Type", "application/json")
-				.put("Content-Type", "application/json").put("DB_URL", url).put("Authorization", secret)
+		this.connectionDetails = subMap
+				.put("Content-Type", "application/json")
+				.put("Accept", "application/json")
 				;
 	}
 	
