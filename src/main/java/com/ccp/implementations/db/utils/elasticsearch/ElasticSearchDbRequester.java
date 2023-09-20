@@ -32,7 +32,6 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				.put("Accept", "application/json")
 				;
 	}
-	
 
 	@Override
 	public <V> V executeHttpRequest(String url, String method,  Integer expectedStatus, String body, CcpMapDecorator headers, CcpHttpResponseTransform<V> transformer) {
@@ -75,15 +74,10 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return executeHttpRequest;
 	}
 
-
-
-
 	@Override
 	public CcpMapDecorator getConnectionDetails() {
 		return this.connectionDetails;
 	}
 
-	
 
-	
 }
