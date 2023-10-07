@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import com.ccp.decorators.CcpMapDecorator;
+import com.ccp.decorators.CcpPropertiesDecorator;
 import com.ccp.decorators.CcpStringDecorator;
 import com.ccp.especifications.db.utils.CcpDbRequester;
 import com.ccp.especifications.http.CcpHttpHandler;
@@ -16,16 +17,23 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	public ElasticSearchDbRequester() {
 		CcpMapDecorator systemProperties;
 		try {
-			systemProperties = new CcpStringDecorator("application.properties")
-					.propertiesFrom().environmentVariablesOrClassLoaderOrFile();
+			CcpStringDecorator ccpStringDecorator = new CcpStringDecorator("application.properties");
+			CcpPropertiesDecorator propertiesFrom = ccpStringDecorator.propertiesFrom();
+			systemProperties = propertiesFrom.environmentVariablesOrClassLoaderOrFile();
 		} catch (CcpMissingInputStream e) {
 			systemProperties = new CcpMapDecorator()
-					.put("elasticsearch.address", "https://localhost:9200")
+					.put("elasticsearch.address", "http://localhost:9200")
 					.put("elasticsearch.secret", "")
 					;
 		}
+		
+		CcpMapDecorator putIfNotContains = systemProperties
+		.putIfNotContains("elasticsearch.address", "http://localhost:9200")
+		.putIfNotContains("elasticsearch.secret", "");
 
-		CcpMapDecorator subMap = systemProperties.getSubMap("elasticsearch.address", "elasticsearch.secret");
+		CcpMapDecorator subMap = putIfNotContains.getSubMap("elasticsearch.address", "elasticsearch.secret")
+				.renameKey("elasticsearch.address", "DB_URL").renameKey("elasticsearch.secret", "Authorization")
+				;
 		
 		this.connectionDetails = subMap
 				.put("Content-Type", "application/json")
