@@ -18,7 +18,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	public ElasticSearchDbRequester() {
 		CcpJsonRepresentation systemProperties;
 		try {
-			CcpStringDecorator ccpStringDecorator = new CcpStringDecorator("application.properties");
+			CcpStringDecorator ccpStringDecorator = new CcpStringDecorator("application_properties");
 			CcpPropertiesDecorator propertiesFrom = ccpStringDecorator.propertiesFrom();
 			systemProperties = propertiesFrom.environmentVariablesOrClassLoaderOrFile();
 		} catch (CcpMissingInputStream e) {
