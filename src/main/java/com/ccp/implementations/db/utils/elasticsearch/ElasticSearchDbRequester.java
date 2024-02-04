@@ -42,7 +42,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				;
 	}
 
-	@Override
+	
 	public <V> V executeHttpRequest(String url, String method,  Integer expectedStatus, String body, CcpJsonRepresentation headers, CcpHttpResponseTransform<V> transformer) {
 		headers = this.connectionDetails.putAll(headers);
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
@@ -51,7 +51,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return executeHttpRequest;
 	}
 
-	@Override
+	
 	public <V> V executeHttpRequest(String complemento, String method, Integer expectedStatus, CcpJsonRepresentation body,  String[] resources, CcpHttpResponseTransform<V> transformer) {
 		String path = this.connectionDetails.getAsString("DB_URL") + "/" +  Arrays.asList(resources).stream()
 				.collect(Collectors.toList())
@@ -63,7 +63,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return executeHttpRequest;
 	}
 
-	@Override
+	
 	public <V> V executeHttpRequest(String url, String method, CcpJsonRepresentation flows, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
 		CcpJsonRepresentation headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(flows);
@@ -73,7 +73,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return executeHttpRequest;
 	}
 
-	@Override
+	
 	public <V> V executeHttpRequest(String url, String method, Integer expectedStatus, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
 		CcpJsonRepresentation headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
@@ -83,7 +83,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return executeHttpRequest;
 	}
 
-	@Override
+	
 	public CcpJsonRepresentation getConnectionDetails() {
 		return this.connectionDetails;
 	}
