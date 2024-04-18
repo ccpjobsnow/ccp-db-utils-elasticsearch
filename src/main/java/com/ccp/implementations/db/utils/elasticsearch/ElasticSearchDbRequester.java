@@ -15,7 +15,12 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 	private CcpJsonRepresentation connectionDetails = CcpConstants.EMPTY_JSON;
 	
-	public ElasticSearchDbRequester() {
+
+	private void loadConnectionProperties() {
+		boolean alreadyLoaded = this.connectionDetails.isEmpty() == false;
+		if(alreadyLoaded) {
+			return;
+		}
 		CcpJsonRepresentation systemProperties;
 		try {
 			CcpStringDecorator ccpStringDecorator = new CcpStringDecorator("application_properties");
@@ -44,6 +49,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 	
 	public <V> V executeHttpRequest(String url, String method,  Integer expectedStatus, String body, CcpJsonRepresentation headers, CcpHttpResponseTransform<V> transformer) {
+		this.loadConnectionProperties();;
 		headers = this.connectionDetails.putAll(headers);
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
 		String path = this.connectionDetails.getAsString("DB_URL") + url;
@@ -53,6 +59,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 	
 	public <V> V executeHttpRequest(String complemento, String method, Integer expectedStatus, CcpJsonRepresentation body,  String[] resources, CcpHttpResponseTransform<V> transformer) {
+		this.loadConnectionProperties();
 		String path = this.connectionDetails.getAsString("DB_URL") + "/" +  Arrays.asList(resources).stream()
 				.collect(Collectors.toList())
 				.toString()
@@ -65,6 +72,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 	
 	public <V> V executeHttpRequest(String url, String method, CcpJsonRepresentation flows, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
+		this.loadConnectionProperties();
 		CcpJsonRepresentation headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(flows);
 		String path = headers.getAsString("DB_URL") + url;
@@ -75,6 +83,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 	
 	public <V> V executeHttpRequest(String url, String method, Integer expectedStatus, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
+		this.loadConnectionProperties();
 		CcpJsonRepresentation headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
 		String path = headers.getAsString("DB_URL") + url;
@@ -85,6 +94,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 	
 	public CcpJsonRepresentation getConnectionDetails() {
+		this.loadConnectionProperties();
 		return this.connectionDetails;
 	}
 
