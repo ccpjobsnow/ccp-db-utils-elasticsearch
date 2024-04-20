@@ -48,17 +48,17 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	}
 
 	
-	public <V> V executeHttpRequest(String url, String method,  Integer expectedStatus, String body, CcpJsonRepresentation headers, CcpHttpResponseTransform<V> transformer) {
+	public <V> V executeHttpRequest(String trace, String url, String method,  Integer expectedStatus, String body, CcpJsonRepresentation headers, CcpHttpResponseTransform<V> transformer) {
 		this.loadConnectionProperties();;
 		headers = this.connectionDetails.putAll(headers);
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
 		String path = this.connectionDetails.getAsString("DB_URL") + url;
-		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
+		V executeHttpRequest = http.executeHttpRequest(trace, path, method, headers, body, transformer);
 		return executeHttpRequest;
 	}
 
 	
-	public <V> V executeHttpRequest(String complemento, String method, Integer expectedStatus, CcpJsonRepresentation body,  String[] resources, CcpHttpResponseTransform<V> transformer) {
+	public <V> V executeHttpRequest(String trace, String complemento, String method, Integer expectedStatus, CcpJsonRepresentation body,  String[] resources, CcpHttpResponseTransform<V> transformer) {
 		this.loadConnectionProperties();
 		String path = this.connectionDetails.getAsString("DB_URL") + "/" +  Arrays.asList(resources).stream()
 				.collect(Collectors.toList())
@@ -66,28 +66,28 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				.replace("[", "").replace("]", "").replace(" ", "") + complemento;
 		CcpJsonRepresentation headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
-		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
+		V executeHttpRequest = http.executeHttpRequest(trace, path, method, headers, body, transformer);
 		return executeHttpRequest;
 	}
 
 	
-	public <V> V executeHttpRequest(String url, String method, CcpJsonRepresentation flows, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
+	public <V> V executeHttpRequest(String trace, String url, String method, CcpJsonRepresentation flows, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
 		this.loadConnectionProperties();
 		CcpJsonRepresentation headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(flows);
 		String path = headers.getAsString("DB_URL") + url;
-		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
+		V executeHttpRequest = http.executeHttpRequest(trace, path, method, headers, body, transformer);
 		
 		return executeHttpRequest;
 	}
 
 	
-	public <V> V executeHttpRequest(String url, String method, Integer expectedStatus, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
+	public <V> V executeHttpRequest(String trace, String url, String method, Integer expectedStatus, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
 		this.loadConnectionProperties();
 		CcpJsonRepresentation headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
 		String path = headers.getAsString("DB_URL") + url;
-		V executeHttpRequest = http.executeHttpRequest(path, method, headers, body, transformer);
+		V executeHttpRequest = http.executeHttpRequest(trace, path, method, headers, body, transformer);
 		
 		return executeHttpRequest;
 	}
