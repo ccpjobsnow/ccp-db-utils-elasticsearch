@@ -5,10 +5,12 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.ccp.constantes.CcpConstants;
+import com.ccp.decorators.CcpCollectionDecorator;
 import com.ccp.decorators.CcpFolderDecorator;
 import com.ccp.decorators.CcpJsonRepresentation;
 import com.ccp.decorators.CcpPropertiesDecorator;
@@ -19,9 +21,11 @@ import com.ccp.especifications.db.bulk.CcpBulkOperationResult;
 import com.ccp.especifications.db.bulk.CcpDbBulkExecutor;
 import com.ccp.especifications.db.utils.CcpDbRequester;
 import com.ccp.especifications.db.utils.CcpEntity;
+import com.ccp.especifications.db.utils.CcpEntityField;
 import com.ccp.especifications.http.CcpHttpHandler;
 import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
+import com.ccp.exceptions.db.CcpIncorrectEntityFields;
 import com.ccp.exceptions.process.CcpMissingInputStream;
 class ElasticSearchDbRequester implements CcpDbRequester {
 
@@ -110,17 +114,13 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return this.connectionDetails;
 	}
 
-	@Override
 	@SuppressWarnings("unchecked")
-	public List<CcpBulkOperationResult> executeDatabaseSetup(String pathToJavaClasses, String hostFolder, Consumer<Throwable> whenOccursAnError) {
+	public List<CcpBulkOperationResult> executeDatabaseSetup(String pathToJavaClasses, String hostFolder, String pathToCreateEntityScript,	Consumer<CcpIncorrectEntityFields> whenTheFieldsInTheEntityAreIncorrect,	Consumer<Throwable> whenOccursAnUnhadledError) {
 		CcpHttpRequester http = CcpDependencyInjection.getDependency(CcpHttpRequester.class);
 		CcpFolderDecorator folderJava = new CcpStringDecorator(pathToJavaClasses).folder();
 		List<CcpBulkItem> bulkItems = new ArrayList<>();
 		folderJava.readFiles(x -> {
 			String name = new File(x.content).getName();
-			if("base".equals(name)) {
-				return;
-			}
 			String replace = name.replace(".java", "");
 			String[] split = pathToJavaClasses.split(hostFolder);
 			String sourceFolder = split[split.length - 1];
@@ -131,20 +131,23 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 			try {
 				declaredConstructor = (Constructor<CcpEntity>) Class.forName(className).getDeclaredConstructor();
 				declaredConstructor.setAccessible(true);
-				CcpEntity newInstance = declaredConstructor.newInstance();
-				String scriptToCreateEntity = newInstance.getScriptToCreateEntity();
-				String entityName = newInstance.getEntityName();
+				CcpEntity entity = declaredConstructor.newInstance();
+				String entityName = entity.getEntityName();
+				String scriptToCreateEntity = this.getScriptToCreateEntity(pathToCreateEntityScript, entityName);
+				
+				this.validateEntityFields(entity, pathToCreateEntityScript);
 				
 				String dbUrl = this.connectionDetails.getAsString("DB_URL");
 				
 				String urlToEntity = dbUrl + "/" + entityName;
 				http.executeHttpRequest(urlToEntity, "DELETE", this.connectionDetails, scriptToCreateEntity, 200);
 				http.executeHttpRequest(urlToEntity, "PUT", this.connectionDetails, scriptToCreateEntity, 200);
-				List<CcpBulkItem> firstRecordsToInsert = newInstance.getFirstRecordsToInsert();
+				List<CcpBulkItem> firstRecordsToInsert = entity.getFirstRecordsToInsert();
 				bulkItems.addAll(firstRecordsToInsert);
-				
-			} catch (Exception e) {
-				whenOccursAnError.accept(e);
+			}catch(CcpIncorrectEntityFields e) {
+				whenTheFieldsInTheEntityAreIncorrect.accept(e);
+			}catch (Throwable e) {
+				whenOccursAnUnhadledError.accept(e);
 			}
 
 		});	
@@ -153,6 +156,51 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		List<CcpBulkOperationResult> bulkOperationResult = bulk.getBulkOperationResult();
 		return bulkOperationResult;
 	}
+
+	private String getScriptToCreateEntity(String pathToCreateEntityScript, String entityName) {
+		String createEntityFile = pathToCreateEntityScript + "/" + entityName;
+		String scriptToCreateEntity = new CcpStringDecorator(createEntityFile).file().extractStringContent();
+		return scriptToCreateEntity;
+	}
 	
-	
+	private void validateEntityFields(CcpEntity entity, String pathToCreateEntityScript) {
+		
+		String entityName = entity.getEntityName();
+		String scriptToCreateEntity = this.getScriptToCreateEntity(pathToCreateEntityScript, entityName);
+		CcpJsonRepresentation scriptToCreateEntityAsJson = new CcpJsonRepresentation(scriptToCreateEntity);
+		CcpJsonRepresentation mappings = scriptToCreateEntityAsJson.getJsonPiece("mappings");
+		String dynamic = mappings.getAsString("dynamic");
+		
+		boolean isNotStrict = "strict".equals(dynamic) == false;
+		
+		if(isNotStrict) {
+			String messageError = String.format("The entity '%s' does not have the dynamic properties equals to strict. The script to this entity is %s", dynamic, scriptToCreateEntityAsJson);
+			throw new CcpIncorrectEntityFields(messageError);
+		}
+		
+		CcpJsonRepresentation propertiesJson = mappings.getInnerJson("properties");
+		Set<String> mappedFields = propertiesJson.keySet();
+		CcpEntityField[] fields = entity.getFields();
+		List<String> classFields = Arrays.asList(fields).stream().map(x -> x.name()).collect(Collectors.toList());
+		List<String> isInScriptButIsNotInClass = new CcpCollectionDecorator(mappedFields).getExclusiveList(classFields);
+		List<String> isInClassButIsNotInScript = new CcpCollectionDecorator(classFields).getExclusiveList(mappedFields);
+		
+		String messageError = String.format("The entity '%s' has an incorrect mapping, "
+				+ "fields that are in script but are not in class %s, "
+				+ "fields that are in class but are not in script %s. "
+				+ "The script to this entity is %s", entity, isInClassButIsNotInScript, 
+				isInScriptButIsNotInClass, scriptToCreateEntityAsJson);
+		boolean missingsInClass = isInScriptButIsNotInClass.isEmpty() == false;
+		
+		if(missingsInClass) {
+			throw new CcpIncorrectEntityFields(messageError);
+		}
+		
+		boolean missingsInScript = isInClassButIsNotInScript.isEmpty() == false;
+
+		if(missingsInScript) {
+			throw new CcpIncorrectEntityFields(messageError);
+		}
+	}
+
 }
