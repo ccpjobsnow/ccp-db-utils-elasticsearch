@@ -1,14 +1,26 @@
 package com.ccp.implementations.db.utils.elasticsearch;
 
+import java.io.File;
+import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.ccp.constantes.CcpConstants;
+import com.ccp.decorators.CcpFolderDecorator;
 import com.ccp.decorators.CcpJsonRepresentation;
 import com.ccp.decorators.CcpPropertiesDecorator;
 import com.ccp.decorators.CcpStringDecorator;
+import com.ccp.dependency.injection.CcpDependencyInjection;
+import com.ccp.especifications.db.bulk.CcpBulkItem;
+import com.ccp.especifications.db.bulk.CcpBulkOperationResult;
+import com.ccp.especifications.db.bulk.CcpDbBulkExecutor;
 import com.ccp.especifications.db.utils.CcpDbRequester;
+import com.ccp.especifications.db.utils.CcpEntity;
 import com.ccp.especifications.http.CcpHttpHandler;
+import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
 import com.ccp.exceptions.process.CcpMissingInputStream;
 class ElasticSearchDbRequester implements CcpDbRequester {
@@ -98,5 +110,49 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return this.connectionDetails;
 	}
 
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<CcpBulkOperationResult> executeDatabaseSetup(String pathToJavaClasses, String hostFolder, Consumer<Throwable> whenOccursAnError) {
+		CcpHttpRequester http = CcpDependencyInjection.getDependency(CcpHttpRequester.class);
+		CcpFolderDecorator folderJava = new CcpStringDecorator(pathToJavaClasses).folder();
+		List<CcpBulkItem> bulkItems = new ArrayList<>();
+		folderJava.readFiles(x -> {
+			String name = new File(x.content).getName();
+			if("base".equals(name)) {
+				return;
+			}
+			String replace = name.replace(".java", "");
+			String[] split = pathToJavaClasses.split(hostFolder);
+			String sourceFolder = split[split.length - 1];
+			String packageName = sourceFolder.replace("\\", ".").replace("/", ".");
+			
+			String className = packageName + "." + replace;
+			Constructor<CcpEntity> declaredConstructor;
+			try {
+				declaredConstructor = (Constructor<CcpEntity>) Class.forName(className).getDeclaredConstructor();
+				declaredConstructor.setAccessible(true);
+				CcpEntity newInstance = declaredConstructor.newInstance();
+				String scriptToCreateEntity = newInstance.getScriptToCreateEntity();
+				String entityName = newInstance.getEntityName();
+				
+				String dbUrl = this.connectionDetails.getAsString("DB_URL");
+				
+				String urlToEntity = dbUrl + "/" + entityName;
+				http.executeHttpRequest(urlToEntity, "DELETE", this.connectionDetails, scriptToCreateEntity, 200);
+				http.executeHttpRequest(urlToEntity, "PUT", this.connectionDetails, scriptToCreateEntity, 200);
+				List<CcpBulkItem> firstRecordsToInsert = newInstance.getFirstRecordsToInsert();
+				bulkItems.addAll(firstRecordsToInsert);
+				
+			} catch (Exception e) {
+				whenOccursAnError.accept(e);
+			}
 
+		});	
+		CcpDbBulkExecutor bulk = CcpDependencyInjection.getDependency(CcpDbBulkExecutor.class);
+		bulk.addRecords(bulkItems);
+		List<CcpBulkOperationResult> bulkOperationResult = bulk.getBulkOperationResult();
+		return bulkOperationResult;
+	}
+	
+	
 }
