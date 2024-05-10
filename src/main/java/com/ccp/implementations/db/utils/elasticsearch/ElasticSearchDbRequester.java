@@ -116,6 +116,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 	@SuppressWarnings("unchecked")
 	public List<CcpBulkOperationResult> executeDatabaseSetup(String pathToJavaClasses, String hostFolder, String pathToCreateEntityScript,	Consumer<CcpIncorrectEntityFields> whenTheFieldsInTheEntityAreIncorrect,	Consumer<Throwable> whenOccursAnUnhadledError) {
+		this.loadConnectionProperties();
 		CcpHttpRequester http = CcpDependencyInjection.getDependency(CcpHttpRequester.class);
 		CcpFolderDecorator folderJava = new CcpStringDecorator(pathToJavaClasses).folder();
 		List<CcpBulkItem> bulkItems = new ArrayList<>();
@@ -125,8 +126,11 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 			String[] split = pathToJavaClasses.split(hostFolder);
 			String sourceFolder = split[split.length - 1];
 			String packageName = sourceFolder.replace("\\", ".").replace("/", ".");
-			
+			if(packageName.startsWith(".")) {
+				packageName = packageName.substring(1);
+			}
 			String className = packageName + "." + replace;
+			
 			Constructor<CcpEntity> declaredConstructor;
 			try {
 				declaredConstructor = (Constructor<CcpEntity>) Class.forName(className).getDeclaredConstructor();
@@ -140,7 +144,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				String dbUrl = this.connectionDetails.getAsString("DB_URL");
 				
 				String urlToEntity = dbUrl + "/" + entityName;
-				http.executeHttpRequest(urlToEntity, "DELETE", this.connectionDetails, scriptToCreateEntity, 200);
+				http.executeHttpRequest(urlToEntity, "DELETE", this.connectionDetails, scriptToCreateEntity, 200, 404);
 				http.executeHttpRequest(urlToEntity, "PUT", this.connectionDetails, scriptToCreateEntity, 200);
 				List<CcpBulkItem> firstRecordsToInsert = entity.getFirstRecordsToInsert();
 				bulkItems.addAll(firstRecordsToInsert);
@@ -168,7 +172,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		String entityName = entity.getEntityName();
 		String scriptToCreateEntity = this.getScriptToCreateEntity(pathToCreateEntityScript, entityName);
 		CcpJsonRepresentation scriptToCreateEntityAsJson = new CcpJsonRepresentation(scriptToCreateEntity);
-		CcpJsonRepresentation mappings = scriptToCreateEntityAsJson.getJsonPiece("mappings");
+		CcpJsonRepresentation mappings = scriptToCreateEntityAsJson.getInnerJson("mappings");
 		String dynamic = mappings.getAsString("dynamic");
 		
 		boolean isNotStrict = "strict".equals(dynamic) == false;
@@ -179,16 +183,17 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		}
 		
 		CcpJsonRepresentation propertiesJson = mappings.getInnerJson("properties");
-		Set<String> mappedFields = propertiesJson.keySet();
+		Set<String> scriptFields = propertiesJson.keySet();
 		CcpEntityField[] fields = entity.getFields();
 		List<String> classFields = Arrays.asList(fields).stream().map(x -> x.name()).collect(Collectors.toList());
-		List<String> isInScriptButIsNotInClass = new CcpCollectionDecorator(mappedFields).getExclusiveList(classFields);
-		List<String> isInClassButIsNotInScript = new CcpCollectionDecorator(classFields).getExclusiveList(mappedFields);
+		List<String> isInClassButIsNotInScript = new CcpCollectionDecorator((Object[])scriptFields.toArray(new String[scriptFields.size()])).getExclusiveList(classFields);
+		List<String> isInScriptButIsNotInClass = new CcpCollectionDecorator((Object[])classFields.toArray(new String[classFields.size()])).getExclusiveList(scriptFields);
 		
-		String messageError = String.format("The entity '%s' has an incorrect mapping, "
-				+ "fields that are in script but are not in class %s, "
-				+ "fields that are in class but are not in script %s. "
-				+ "The script to this entity is %s", entity, isInClassButIsNotInScript, 
+		String className = entity.getClass().getSimpleName();
+		String messageError = String.format("The class '%s'\n that belongs to the entity '%s'\n has an incorrect mapping, "
+				+ "fields that are in script but are not in class %s,\n "
+				+ "fields that are in class but are not in script %s.\n "
+				+ "The script to this entity is %s", className, entityName, isInClassButIsNotInScript, 
 				isInScriptButIsNotInClass, scriptToCreateEntityAsJson);
 		boolean missingsInClass = isInScriptButIsNotInClass.isEmpty() == false;
 		
