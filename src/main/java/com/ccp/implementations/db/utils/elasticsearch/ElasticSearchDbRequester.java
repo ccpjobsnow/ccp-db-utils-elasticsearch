@@ -144,8 +144,8 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				String dbUrl = this.connectionDetails.getAsString("DB_URL");
 				
 				String urlToEntity = dbUrl + "/" + entityName;
-				http.executeHttpRequest(urlToEntity, "DELETE", this.connectionDetails, scriptToCreateEntity, 200, 404);
-				http.executeHttpRequest(urlToEntity, "PUT", this.connectionDetails, scriptToCreateEntity, 200);
+				this.recreateEntity(http, scriptToCreateEntity, urlToEntity);
+				this.recreateEntityMirror(http, entity, scriptToCreateEntity, dbUrl);
 				List<CcpBulkItem> firstRecordsToInsert = entity.getFirstRecordsToInsert();
 				bulkItems.addAll(firstRecordsToInsert);
 			}catch(CcpIncorrectEntityFields e) {
@@ -159,6 +159,26 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		bulk.addRecords(bulkItems);
 		List<CcpBulkOperationResult> bulkOperationResult = bulk.getBulkOperationResult();
 		return bulkOperationResult;
+	}
+
+
+	private void recreateEntityMirror(CcpHttpRequester http, CcpEntity entity, String scriptToCreateEntity, String dbUrl) {
+		
+		boolean hasNoMirrorEntity = entity.hasMirrorEntity() == false;
+		
+		if(hasNoMirrorEntity) {
+			return;
+		}
+		CcpEntity mirrorEntity = entity.getMirrorEntity();
+		String entityNameMirror = mirrorEntity.getEntityName();
+		String urlToEntityMirror = dbUrl + "/" + entityNameMirror;
+		this.recreateEntity(http, scriptToCreateEntity, urlToEntityMirror);
+	}
+
+
+	private void recreateEntity(CcpHttpRequester http, String scriptToCreateEntity, String urlToEntity) {
+		http.executeHttpRequest(urlToEntity, "DELETE", this.connectionDetails, scriptToCreateEntity, 200, 404);
+		http.executeHttpRequest(urlToEntity, "PUT", this.connectionDetails, scriptToCreateEntity, 200);
 	}
 
 	private String getScriptToCreateEntity(String pathToCreateEntityScript, String entityName) {
