@@ -228,4 +228,11 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		}
 	}
 
+	public String getFieldNameToEntity() {
+		return "_index";
+	}
+
+	public String getFieldNameToId() {
+		return "_id";
+	}
 }
