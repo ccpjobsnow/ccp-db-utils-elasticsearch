@@ -136,6 +136,13 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				declaredConstructor = (Constructor<CcpEntity>) Class.forName(className).getDeclaredConstructor();
 				declaredConstructor.setAccessible(true);
 				CcpEntity entity = declaredConstructor.newInstance();
+				
+				boolean virtual = entity.isVirtual();
+				
+				if(virtual) {
+					return;
+				}
+				
 				String entityName = entity.getEntityName();
 				String scriptToCreateEntity = this.getScriptToCreateEntity(pathToCreateEntityScript, entityName);
 				
