@@ -54,7 +54,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		.putIfNotContains("elasticsearch.secret", "");
 
 		CcpJsonRepresentation subMap = putIfNotContains.getJsonPiece("elasticsearch.address", "elasticsearch.secret")
-				.renameKey("elasticsearch.address", "DB_URL").renameKey("elasticsearch.secret", "Authorization")
+				.renameField("elasticsearch.address", "DB_URL").renameField("elasticsearch.secret", "Authorization")
 				;
 		
 		this.connectionDetails = subMap
@@ -210,11 +210,13 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		}
 		
 		CcpJsonRepresentation propertiesJson = mappings.getInnerJson("properties");
-		Set<String> scriptFields = propertiesJson.keySet();
+		Set<String> scriptFields = propertiesJson.fieldSet();
 		CcpEntityField[] fields = entity.getFields();
 		List<String> classFields = Arrays.asList(fields).stream().map(x -> x.name()).collect(Collectors.toList());
-		List<String> isInClassButIsNotInScript = new CcpCollectionDecorator((Object[])scriptFields.toArray(new String[scriptFields.size()])).getExclusiveList(classFields);
-		List<String> isInScriptButIsNotInClass = new CcpCollectionDecorator((Object[])classFields.toArray(new String[classFields.size()])).getExclusiveList(scriptFields);
+		Object[] array = scriptFields.toArray(new String[scriptFields.size()]);
+		List<String> isInClassButIsNotInScript = new CcpCollectionDecorator(array).getExclusiveList(classFields);
+		Object[] array2 = classFields.toArray(new String[classFields.size()]);
+		List<String> isInScriptButIsNotInClass = new CcpCollectionDecorator(array2).getExclusiveList(scriptFields);
 		
 		String className = entity.getClass().getSimpleName();
 		String messageError = String.format("The class '%s'\n that belongs to the entity '%s'\n has an incorrect mapping, "
