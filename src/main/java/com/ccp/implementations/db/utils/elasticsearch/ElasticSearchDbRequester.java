@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import com.ccp.constantes.CcpConstants;
 import com.ccp.decorators.CcpCollectionDecorator;
+import com.ccp.decorators.CcpFileDecorator;
 import com.ccp.decorators.CcpFolderDecorator;
 import com.ccp.decorators.CcpJsonRepresentation;
 import com.ccp.decorators.CcpPropertiesDecorator;
@@ -113,7 +114,38 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		this.loadConnectionProperties();
 		return this.connectionDetails;
 	}
+	
+	public void createTables(String pathToCreateEntityScript, String pathToJavaClasses,
+			String mappingJnEntitiesErrors, String insertErrors) {
+		String hostFolder = "java";
 
+		CcpFileDecorator mappingJnEntitiesErrorsFile = new CcpStringDecorator(mappingJnEntitiesErrors)
+				.file().reset();
+
+		CcpDbRequester database = CcpDependencyInjection.getDependency(CcpDbRequester.class);
+		
+		Consumer<CcpIncorrectEntityFields> whenIsIncorrectMapping = e -> {
+			String message = e.getMessage();
+			mappingJnEntitiesErrorsFile.append(message);
+		};
+		
+		Consumer<Throwable> whenOccursAnError = e -> {
+
+			if (e instanceof ClassNotFoundException) {
+				return;
+			}
+			throw new RuntimeException(e);
+		};
+		
+		List<CcpBulkOperationResult> executeDatabaseSetup = database.executeDatabaseSetup(pathToJavaClasses, hostFolder,
+				pathToCreateEntityScript, whenIsIncorrectMapping, whenOccursAnError);
+
+		CcpFileDecorator createJnEntitiesFile = new CcpStringDecorator(insertErrors).file().reset();
+		 
+		createJnEntitiesFile.write(executeDatabaseSetup.toString());
+	}
+
+	
 	@SuppressWarnings("unchecked")
 	public List<CcpBulkOperationResult> executeDatabaseSetup(String pathToJavaClasses, String hostFolder, String pathToCreateEntityScript,	Consumer<CcpIncorrectEntityFields> whenTheFieldsInTheEntityAreIncorrect,	Consumer<Throwable> whenOccursAnUnhadledError) {
 		this.loadConnectionProperties();
