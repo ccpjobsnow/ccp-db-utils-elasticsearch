@@ -23,6 +23,7 @@ import com.ccp.especifications.db.bulk.CcpDbBulkExecutor;
 import com.ccp.especifications.db.utils.CcpDbRequester;
 import com.ccp.especifications.db.utils.CcpEntity;
 import com.ccp.especifications.db.utils.CcpEntityField;
+import com.ccp.especifications.db.utils.decorators.CcpFactoryEntity;
 import com.ccp.especifications.http.CcpHttpHandler;
 import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
@@ -169,7 +170,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				declaredConstructor.setAccessible(true);
 				CcpEntity entity = declaredConstructor.newInstance();
 				
-				boolean virtual = entity.isVirtual();
+				boolean virtual = entity.isVirtualEntity();
 				
 				if(virtual) {
 					return;
@@ -185,7 +186,8 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				String urlToEntity = dbUrl + "/" + entityName;
 				this.recreateEntity(http, scriptToCreateEntity, urlToEntity);
 				this.recreateEntityMirror(http, entity, scriptToCreateEntity, dbUrl);
-				List<CcpBulkItem> firstRecordsToInsert = entity.getFirstRecordsToInsert();
+				Class<? extends CcpEntity> class1 = entity.getClass();
+				List<CcpBulkItem> firstRecordsToInsert = CcpFactoryEntity.getFirstRecordsToInsert(class1);
 				bulkItems.addAll(firstRecordsToInsert);
 			}catch(CcpIncorrectEntityFields e) {
 				whenTheFieldsInTheEntityAreIncorrect.accept(e);
@@ -203,12 +205,12 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 	private void recreateEntityMirror(CcpHttpRequester http, CcpEntity entity, String scriptToCreateEntity, String dbUrl) {
 		
-		boolean hasNoMirrorEntity = entity.hasMirrorEntity() == false;
+		boolean hasNoMirrorEntity = entity.hasTwinEntity() == false;
 		
 		if(hasNoMirrorEntity) {
 			return;
 		}
-		CcpEntity mirrorEntity = entity.getMirrorEntity();
+		CcpEntity mirrorEntity = entity.getTwinEntity();
 		String entityNameMirror = mirrorEntity.getEntityName();
 		String urlToEntityMirror = dbUrl + "/" + entityNameMirror;
 		this.recreateEntity(http, scriptToCreateEntity, urlToEntityMirror);
@@ -222,7 +224,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 	private String getScriptToCreateEntity(String pathToCreateEntityScript, String entityName) {
 		String createEntityFile = pathToCreateEntityScript + "/" + entityName;
-		String scriptToCreateEntity = new CcpStringDecorator(createEntityFile).file().extractStringContent();
+		String scriptToCreateEntity = new CcpStringDecorator(createEntityFile).file().getStringContent();
 		return scriptToCreateEntity;
 	}
 	
