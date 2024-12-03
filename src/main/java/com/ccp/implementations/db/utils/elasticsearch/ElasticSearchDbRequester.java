@@ -1,7 +1,6 @@
 package com.ccp.implementations.db.utils.elasticsearch;
 
 import java.io.File;
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -23,7 +22,7 @@ import com.ccp.especifications.db.bulk.CcpDbBulkExecutor;
 import com.ccp.especifications.db.utils.CcpDbRequester;
 import com.ccp.especifications.db.utils.CcpEntity;
 import com.ccp.especifications.db.utils.CcpEntityField;
-import com.ccp.especifications.db.utils.decorators.CcpFactoryEntity;
+import com.ccp.especifications.db.utils.decorators.CcpEntityFactory;
 import com.ccp.especifications.http.CcpHttpHandler;
 import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
@@ -146,8 +145,6 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		createJnEntitiesFile.write(executeDatabaseSetup.toString());
 	}
 
-	
-	@SuppressWarnings("unchecked")
 	public List<CcpBulkOperationResult> executeDatabaseSetup(String pathToJavaClasses, String hostFolder, String pathToCreateEntityScript,	Consumer<CcpIncorrectEntityFields> whenTheFieldsInTheEntityAreIncorrect,	Consumer<Throwable> whenOccursAnUnhadledError) {
 		this.loadConnectionProperties();
 		CcpHttpRequester http = CcpDependencyInjection.getDependency(CcpHttpRequester.class);
@@ -164,30 +161,29 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 			}
 			String className = packageName + "." + replace;
 			
-			Constructor<CcpEntity> declaredConstructor;
 			try {
-				declaredConstructor = (Constructor<CcpEntity>) Class.forName(className).getDeclaredConstructor();
-				declaredConstructor.setAccessible(true);
-				CcpEntity entity = declaredConstructor.newInstance();
 				
-				boolean virtual = entity.isVirtualEntity();
+				Class<?> clazz = Class.forName(className);
+				CcpEntityFactory factory = new CcpEntityFactory(clazz);
+				boolean virtual = factory.isVirtualEntity;
 				
 				if(virtual) {
 					return;
 				}
+
+				CcpEntity entity = factory.entityInstance;
 				
 				String entityName = entity.getEntityName();
 				String scriptToCreateEntity = this.getScriptToCreateEntity(pathToCreateEntityScript, entityName);
 				
-				this.validateEntityFields(entity, pathToCreateEntityScript);
+				this.validateEntityFields(entity, pathToCreateEntityScript, className);
 				
 				String dbUrl = this.connectionDetails.getAsString("DB_URL");
 				
 				String urlToEntity = dbUrl + "/" + entityName;
 				this.recreateEntity(http, scriptToCreateEntity, urlToEntity);
-				this.recreateEntityMirror(http, entity, scriptToCreateEntity, dbUrl);
-				Class<? extends CcpEntity> class1 = entity.getClass();
-				List<CcpBulkItem> firstRecordsToInsert = CcpFactoryEntity.getFirstRecordsToInsert(class1);
+				this.recreateEntityMirror(http, factory, scriptToCreateEntity, dbUrl);
+				List<CcpBulkItem> firstRecordsToInsert = factory.firstRecordsToInsert;
 				bulkItems.addAll(firstRecordsToInsert);
 			}catch(CcpIncorrectEntityFields e) {
 				whenTheFieldsInTheEntityAreIncorrect.accept(e);
@@ -203,9 +199,11 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	}
 
 
-	private void recreateEntityMirror(CcpHttpRequester http, CcpEntity entity, String scriptToCreateEntity, String dbUrl) {
+	private void recreateEntityMirror(CcpHttpRequester http, CcpEntityFactory factory, String scriptToCreateEntity, String dbUrl) {
 		
-		boolean hasNoMirrorEntity = entity.hasTwinEntity() == false;
+		CcpEntity entity = factory.entityInstance;
+		
+		boolean hasNoMirrorEntity = factory.hasTwinEntity == false;
 		
 		if(hasNoMirrorEntity) {
 			return;
@@ -228,7 +226,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return scriptToCreateEntity;
 	}
 	
-	private void validateEntityFields(CcpEntity entity, String pathToCreateEntityScript) {
+	private void validateEntityFields(CcpEntity entity, String pathToCreateEntityScript, String className) {
 		
 		String entityName = entity.getEntityName();
 		String scriptToCreateEntity = this.getScriptToCreateEntity(pathToCreateEntityScript, entityName);
@@ -252,7 +250,6 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		Object[] array2 = classFields.toArray(new String[classFields.size()]);
 		List<String> isInScriptButIsNotInClass = new CcpCollectionDecorator(array2).getExclusiveList(scriptFields);
 		
-		String className = entity.getClass().getSimpleName();
 		String messageError = String.format("The class '%s'\n that belongs to the entity '%s'\n has an incorrect mapping, "
 				+ "fields that are in script but are not in class %s,\n "
 				+ "fields that are in class but are not in script %s.\n "
