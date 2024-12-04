@@ -1,6 +1,7 @@
 package com.ccp.implementations.db.utils.elasticsearch;
 
 import java.io.File;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -22,6 +23,7 @@ import com.ccp.especifications.db.bulk.CcpDbBulkExecutor;
 import com.ccp.especifications.db.utils.CcpDbRequester;
 import com.ccp.especifications.db.utils.CcpEntity;
 import com.ccp.especifications.db.utils.CcpEntityField;
+import com.ccp.especifications.db.utils.decorators.CcpEntityConfigurator;
 import com.ccp.especifications.db.utils.decorators.CcpEntityFactory;
 import com.ccp.especifications.http.CcpHttpHandler;
 import com.ccp.especifications.http.CcpHttpRequester;
@@ -164,12 +166,24 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 			try {
 				
 				Class<?> clazz = Class.forName(className);
-				CcpEntityFactory factory = new CcpEntityFactory(clazz);
-				boolean virtual = factory.isVirtualEntity;
+				Constructor<?> declaredConstructor = clazz.getDeclaredConstructor();
+				declaredConstructor.setAccessible(true);
+				Object newInstance = declaredConstructor.newInstance();
 				
-				if(virtual) {
+				
+				if(newInstance instanceof CcpEntityConfigurator == false) {
+					throw new RuntimeException("The class '" + clazz.getName() + " must implement the interface '" + CcpEntityConfigurator.class.getName() + "'"); 
+				}
+				
+				CcpEntityConfigurator configurator = (CcpEntityConfigurator) newInstance;
+				
+				boolean virtualEntity = configurator.isVirtualEntity();
+				
+				if(virtualEntity) {
 					return;
 				}
+
+				CcpEntityFactory factory = new CcpEntityFactory(clazz);
 
 				CcpEntity entity = factory.entityInstance;
 				
@@ -183,7 +197,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				String urlToEntity = dbUrl + "/" + entityName;
 				this.recreateEntity(http, scriptToCreateEntity, urlToEntity);
 				this.recreateEntityMirror(http, factory, scriptToCreateEntity, dbUrl);
-				List<CcpBulkItem> firstRecordsToInsert = factory.firstRecordsToInsert;
+				List<CcpBulkItem> firstRecordsToInsert = configurator.getFirstRecordsToInsert();
 				bulkItems.addAll(firstRecordsToInsert);
 			}catch(CcpIncorrectEntityFields e) {
 				whenTheFieldsInTheEntityAreIncorrect.accept(e);
