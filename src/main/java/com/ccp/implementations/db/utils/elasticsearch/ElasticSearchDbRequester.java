@@ -196,7 +196,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				
 				String urlToEntity = dbUrl + "/" + entityName;
 				this.recreateEntity(http, scriptToCreateEntity, urlToEntity);
-				this.recreateEntityMirror(http, factory, scriptToCreateEntity, dbUrl);
+				this.recreateEntityTwin(http, factory, scriptToCreateEntity, dbUrl);
 				List<CcpBulkItem> firstRecordsToInsert = configurator.getFirstRecordsToInsert();
 				bulkItems.addAll(firstRecordsToInsert);
 			}catch(CcpIncorrectEntityFields e) {
@@ -213,19 +213,19 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	}
 
 
-	private void recreateEntityMirror(CcpHttpRequester http, CcpEntityFactory factory, String scriptToCreateEntity, String dbUrl) {
+	private void recreateEntityTwin(CcpHttpRequester http, CcpEntityFactory factory, String scriptToCreateEntity, String dbUrl) {
 		
 		CcpEntity entity = factory.entityInstance;
 		
-		boolean hasNoMirrorEntity = factory.hasTwinEntity == false;
+		boolean hasNoTwinEntity = factory.hasTwinEntity == false;
 		
-		if(hasNoMirrorEntity) {
+		if(hasNoTwinEntity) {
 			return;
 		}
-		CcpEntity mirrorEntity = entity.getTwinEntity();
-		String entityNameMirror = mirrorEntity.getEntityName();
-		String urlToEntityMirror = dbUrl + "/" + entityNameMirror;
-		this.recreateEntity(http, scriptToCreateEntity, urlToEntityMirror);
+		CcpEntity twinEntity = entity.getTwinEntity();
+		String entityNameTwin = twinEntity.getEntityName();
+		String urlToEntityTwin = dbUrl + "/" + entityNameTwin;
+		this.recreateEntity(http, scriptToCreateEntity, urlToEntityTwin);
 	}
 
 
