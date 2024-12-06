@@ -117,12 +117,11 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return this.connectionDetails;
 	}
 	
-	public void createTables(String pathToCreateEntityScript, String pathToJavaClasses,
-			String mappingJnEntitiesErrors, String insertErrors) {
+	public void createTables(String pathToCreateEntityScript, String pathToJavaClasses, String mappingJnEntitiesErrors, String insertErrors) {
+
 		String hostFolder = "java";
 
-		CcpFileDecorator mappingJnEntitiesErrorsFile = new CcpStringDecorator(mappingJnEntitiesErrors)
-				.file().reset();
+		CcpFileDecorator mappingJnEntitiesErrorsFile = new CcpStringDecorator(mappingJnEntitiesErrors).file().reset();
 
 		CcpDbRequester database = CcpDependencyInjection.getDependency(CcpDbRequester.class);
 		
