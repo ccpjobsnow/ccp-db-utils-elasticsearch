@@ -169,14 +169,9 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				declaredConstructor.setAccessible(true);
 				Object newInstance = declaredConstructor.newInstance();
 				
-				
-				if(newInstance instanceof CcpEntityConfigurator == false) {
-					throw new RuntimeException("The class '" + clazz.getName() + " must implement the interface '" + CcpEntityConfigurator.class.getName() + "'"); 
-				}
-				
 				CcpEntityConfigurator configurator = (CcpEntityConfigurator) newInstance;
 				
-				boolean virtualEntity = configurator.isVirtualEntity();
+				boolean virtualEntity = newInstance instanceof CcpEntityConfigurator == false;
 				
 				if(virtualEntity) {
 					return;
