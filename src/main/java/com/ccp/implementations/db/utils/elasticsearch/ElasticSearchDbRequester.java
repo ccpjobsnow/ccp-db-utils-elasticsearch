@@ -169,13 +169,12 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				declaredConstructor.setAccessible(true);
 				Object newInstance = declaredConstructor.newInstance();
 				
-				CcpEntityConfigurator configurator = (CcpEntityConfigurator) newInstance;
-				
 				boolean virtualEntity = newInstance instanceof CcpEntityConfigurator == false;
 				
 				if(virtualEntity) {
 					return;
 				}
+				CcpEntityConfigurator configurator = (CcpEntityConfigurator) newInstance;
 
 				CcpEntityFactory factory = new CcpEntityFactory(clazz);
 
