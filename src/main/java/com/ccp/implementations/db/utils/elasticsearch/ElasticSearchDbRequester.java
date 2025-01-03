@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.ccp.constantes.CcpConstants;
+import com.ccp.constantes.CcpOtherConstants;
 import com.ccp.decorators.CcpCollectionDecorator;
 import com.ccp.decorators.CcpFileDecorator;
 import com.ccp.decorators.CcpFolderDecorator;
@@ -32,7 +32,7 @@ import com.ccp.exceptions.db.CcpIncorrectEntityFields;
 import com.ccp.exceptions.process.CcpMissingInputStream;
 class ElasticSearchDbRequester implements CcpDbRequester {
 
-	private CcpJsonRepresentation connectionDetails = CcpConstants.EMPTY_JSON;
+	private CcpJsonRepresentation connectionDetails = CcpOtherConstants.EMPTY_JSON;
 	
 
 	private void loadConnectionProperties() {
@@ -46,7 +46,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 			CcpPropertiesDecorator propertiesFrom = ccpStringDecorator.propertiesFrom();
 			systemProperties = propertiesFrom.environmentVariablesOrClassLoaderOrFile();
 		} catch (CcpMissingInputStream e) {
-			systemProperties = CcpConstants.EMPTY_JSON
+			systemProperties = CcpOtherConstants.EMPTY_JSON
 					.put("elasticsearch.address", "http://localhost:9200")
 					.put("elasticsearch.secret", "")
 					;
