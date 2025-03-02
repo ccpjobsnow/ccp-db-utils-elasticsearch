@@ -35,10 +35,10 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	private CcpJsonRepresentation connectionDetails = CcpOtherConstants.EMPTY_JSON;
 	
 
-	private void loadConnectionProperties() {
+	private CcpDbRequester loadConnectionProperties() {
 		boolean alreadyLoaded = this.connectionDetails.isEmpty() == false;
 		if(alreadyLoaded) {
-			return;
+			return this;
 		}
 		CcpJsonRepresentation systemProperties;
 		try {
@@ -64,6 +64,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 				.put("Content-Type", "application/json")
 				.put("Accept", "application/json")
 				;
+		return this;
 	}
 
 	
@@ -117,7 +118,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return this.connectionDetails;
 	}
 	
-	public void createTables(String pathToCreateEntityScript, String pathToJavaClasses, String mappingJnEntitiesErrors, String insertErrors) {
+	public CcpDbRequester createTables(String pathToCreateEntityScript, String pathToJavaClasses, String mappingJnEntitiesErrors, String insertErrors) {
 
 		String hostFolder = "java";
 
@@ -144,6 +145,8 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		CcpFileDecorator createJnEntitiesFile = new CcpStringDecorator(insertErrors).file().reset();
 		 
 		createJnEntitiesFile.write(executeDatabaseSetup.toString());
+		
+		return this;
 	}
 
 	public List<CcpBulkOperationResult> executeDatabaseSetup(String pathToJavaClasses, String hostFolder, String pathToCreateEntityScript,	Consumer<CcpIncorrectEntityFields> whenTheFieldsInTheEntityAreIncorrect,	Consumer<Throwable> whenOccursAnUnhadledError) {
@@ -206,25 +209,27 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	}
 
 
-	private void recreateEntityTwin(CcpHttpRequester http, CcpEntityFactory factory, String scriptToCreateEntity, String dbUrl) {
+	private CcpDbRequester recreateEntityTwin(CcpHttpRequester http, CcpEntityFactory factory, String scriptToCreateEntity, String dbUrl) {
 		
 		CcpEntity entity = factory.entityInstance;
 		
 		boolean hasNoTwinEntity = factory.hasTwinEntity == false;
 		
 		if(hasNoTwinEntity) {
-			return;
+			return this;
 		}
 		CcpEntity twinEntity = entity.getTwinEntity();
 		String entityNameTwin = twinEntity.getEntityName();
 		String urlToEntityTwin = dbUrl + "/" + entityNameTwin;
 		this.recreateEntity(http, scriptToCreateEntity, urlToEntityTwin);
+		return this;
 	}
 
 
-	private void recreateEntity(CcpHttpRequester http, String scriptToCreateEntity, String urlToEntity) {
+	private CcpDbRequester recreateEntity(CcpHttpRequester http, String scriptToCreateEntity, String urlToEntity) {
 		http.executeHttpRequest(urlToEntity, "DELETE", this.connectionDetails, scriptToCreateEntity, 200, 404);
 		http.executeHttpRequest(urlToEntity, "PUT", this.connectionDetails, scriptToCreateEntity, 200);
+		return this;
 	}
 
 	private String getScriptToCreateEntity(String pathToCreateEntityScript, String entityName) {
@@ -233,7 +238,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		return scriptToCreateEntity;
 	}
 	
-	private void validateEntityFields(CcpEntity entity, String pathToCreateEntityScript, String className) {
+	private CcpDbRequester validateEntityFields(CcpEntity entity, String pathToCreateEntityScript, String className) {
 		
 		String entityName = entity.getEntityName();
 		String scriptToCreateEntity = this.getScriptToCreateEntity(pathToCreateEntityScript, entityName);
@@ -273,6 +278,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 		if(missingsInScript) {
 			throw new CcpIncorrectEntityFields(messageError);
 		}
+		return this;
 	}
 
 	public String getFieldNameToEntity() {
