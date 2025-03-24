@@ -23,18 +23,19 @@ import com.ccp.especifications.db.bulk.CcpDbBulkExecutor;
 import com.ccp.especifications.db.utils.CcpDbRequester;
 import com.ccp.especifications.db.utils.CcpEntity;
 import com.ccp.especifications.db.utils.CcpEntityField;
-import com.ccp.especifications.db.utils.decorators.CcpEntityConfigurator;
-import com.ccp.especifications.db.utils.decorators.CcpEntityFactory;
+import com.ccp.especifications.db.utils.decorators.engine.CcpEntityConfigurator;
+import com.ccp.especifications.db.utils.decorators.engine.CcpEntityFactory;
 import com.ccp.especifications.http.CcpHttpHandler;
 import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponseTransform;
-import com.ccp.exceptions.db.CcpIncorrectEntityFields;
-import com.ccp.exceptions.process.CcpMissingInputStream;
+import com.ccp.exceptions.db.utils.CcpIncorrectEntityFields;
+import com.ccp.exceptions.inputstream.CcpMissingInputStream;
+import com.ccp.http.CcpHttpMethods;
+
 class ElasticSearchDbRequester implements CcpDbRequester {
 
 	private CcpJsonRepresentation connectionDetails = CcpOtherConstants.EMPTY_JSON;
 	
-
 	private CcpDbRequester loadConnectionProperties() {
 		boolean alreadyLoaded = this.connectionDetails.isEmpty() == false;
 		if(alreadyLoaded) {
@@ -68,7 +69,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	}
 
 	
-	public <V> V executeHttpRequest(String trace, String url, String method,  Integer expectedStatus, String body, CcpJsonRepresentation headers, CcpHttpResponseTransform<V> transformer) {
+	public <V> V executeHttpRequest(String trace, String url, CcpHttpMethods method,  Integer expectedStatus, String body, CcpJsonRepresentation headers, CcpHttpResponseTransform<V> transformer) {
 		this.loadConnectionProperties();;
 		headers = this.connectionDetails.putAll(headers);
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
@@ -78,7 +79,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	}
 
 	
-	public <V> V executeHttpRequest(String trace, String complemento, String method, Integer expectedStatus, CcpJsonRepresentation body,  String[] resources, CcpHttpResponseTransform<V> transformer) {
+	public <V> V executeHttpRequest(String trace, String complemento, CcpHttpMethods method, Integer expectedStatus, CcpJsonRepresentation body,  String[] resources, CcpHttpResponseTransform<V> transformer) {
 		this.loadConnectionProperties();
 		String path = this.connectionDetails.getAsString("DB_URL") + "/" +  Arrays.asList(resources).stream()
 				.collect(Collectors.toList())
@@ -91,7 +92,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	}
 
 	
-	public <V> V executeHttpRequest(String trace, String url, String method, CcpJsonRepresentation flows, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
+	public <V> V executeHttpRequest(String trace, String url, CcpHttpMethods method, CcpJsonRepresentation flows, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
 		this.loadConnectionProperties();
 		CcpJsonRepresentation headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(flows);
@@ -102,7 +103,7 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 	}
 
 	
-	public <V> V executeHttpRequest(String trace, String url, String method, Integer expectedStatus, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
+	public <V> V executeHttpRequest(String trace, String url, CcpHttpMethods method, Integer expectedStatus, CcpJsonRepresentation body, CcpHttpResponseTransform<V> transformer) {
 		this.loadConnectionProperties();
 		CcpJsonRepresentation headers = this.connectionDetails;
 		CcpHttpHandler http = new CcpHttpHandler(expectedStatus);
@@ -227,8 +228,8 @@ class ElasticSearchDbRequester implements CcpDbRequester {
 
 
 	private CcpDbRequester recreateEntity(CcpHttpRequester http, String scriptToCreateEntity, String urlToEntity) {
-		http.executeHttpRequest(urlToEntity, "DELETE", this.connectionDetails, scriptToCreateEntity, 200, 404);
-		http.executeHttpRequest(urlToEntity, "PUT", this.connectionDetails, scriptToCreateEntity, 200);
+		http.executeHttpRequest(urlToEntity, CcpHttpMethods.DELETE, this.connectionDetails, scriptToCreateEntity, 200, 404);
+		http.executeHttpRequest(urlToEntity, CcpHttpMethods.PUT, this.connectionDetails, scriptToCreateEntity, 200);
 		return this;
 	}
 
